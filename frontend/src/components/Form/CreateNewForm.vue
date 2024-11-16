@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :visible.sync="visible" title="Add/Edit Book" :width="'30%'">
+  <el-dialog :visible.sync="visible" :title="dialogTitle" :width="'30%'">
     <el-form :model="book" label-width="80px">
       <el-form-item label="Title" prop="title">
         <el-input v-model="book.title" placeholder="Enter Title"></el-input>
@@ -22,6 +22,18 @@
           <el-option label="Lent Out" value="Lent Out"></el-option>
         </el-select>
       </el-form-item>
+      <el-form-item label="Description" prop="description">
+        <el-input
+          v-model="book.description"
+          placeholder="Enter Description"
+        ></el-input>
+      </el-form-item>
+      <el-form-item label="Location" prop="location">
+        <el-input
+          v-model="book.location"
+          placeholder="Enter Location"
+        ></el-input>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="handleSubmit">Submit</el-button>
         <el-button @click="handleCancel">Cancel</el-button>
@@ -31,7 +43,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, reactive, computed } from "vue";
+import { useUserStore } from "../../stores/userStore"; // Assuming you have a user store
 
 const props = defineProps({
   visible: Boolean,
@@ -40,10 +53,45 @@ const props = defineProps({
 
 const emit = defineEmits(["submit", "update:visible"]);
 
+const userStore = useUserStore();
+const { user } = userStore;
+
+const bookForm = reactive({
+  title: "",
+  author: "",
+  genre: "",
+  condition: "",
+  status: "Available",
+  description: "",
+  location: "",
+  ...props.book, // Spread the book prop to populate the form if editing
+});
+
 const handleSubmit = () => {
-  emit("submit", book);
-  emit("update:visible", false);
+  const userId = userStore.user._id;
+
+  const bookPayload = {
+    ...bookForm,
+    owner: userId, // Include the user ID in the request payload
+  };
+
+  try {
+    if (bookForm._id) {
+      emit("submit", bookPayload);
+      emit("update:visible", false);
+    } else {
+      const { id, ...bookWithoutId } = props.book;
+      emit("submit", bookWithoutId);
+      emit("update:visible", false);
+    }
+  } catch (error) {
+    console.error("Error saving book:", error);
+  }
 };
+
+const dialogTitle = computed(() =>
+  props.book && props.book._id ? "Edit Book" : "Add Book"
+);
 
 const handleCancel = () => {
   emit("update:visible", false);

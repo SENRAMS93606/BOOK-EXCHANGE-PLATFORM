@@ -7,6 +7,18 @@
     <div class="header-right">
       <SearchComp />
       <el-button type="primary" @click="openForm">+ Add Book</el-button>
+
+      <el-dropdown>
+        <span class="el-dropdown-link">
+          {{ userName.split("@")[0] }}
+          <el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click.native="logout">Logout</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
   </header>
 </template>
@@ -14,7 +26,26 @@
 <script setup>
 import SearchComp from "../SearchFilter/searchComp.vue";
 import { useBookStore } from "../../stores/bookStore";
+import { useUserStore } from "../../stores/userStore";
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { ArrowDown } from "@element-plus/icons-vue";
+
+const userStore = useUserStore();
 const bookStore = useBookStore();
+
+const router = useRouter();
+
+const userName = computed(() => userStore.user?.email || "Guest");
+
+const logout = async () => {
+  try {
+    await userStore.logout();
+    router.push({ name: "Login" });
+  } catch (error) {
+    console.error("Error logging out:", error);
+  }
+};
 
 const openForm = () => {
   bookStore.setFormVisible(true);

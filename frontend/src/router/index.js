@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import Login from "../views/Login.vue";
 import HomePage from "../views/Home.vue";
+import ForgotPassword from "../components/Login/ForgotPassword.vue";
+import ResetPassword from "../components/Login/ResetPassword.vue";
 // import Exchange from "../views/Exchange.vue";
 
 const routes = [
@@ -20,11 +22,16 @@ const routes = [
         name: "HomePage",
         component: HomePage,
       },
-      // {
-      //   path: "Exchange",
-      //   name: "Exchange",
-      //   component: Exchange,
-      // },
+      {
+        path: "/forgot-password",
+        name: "ForgotPassword",
+        component: ForgotPassword,
+      },
+      {
+        path: "/reset-password/:token",
+        name: "ResetPassword",
+        component: ResetPassword,
+      },
     ],
   },
 ];
