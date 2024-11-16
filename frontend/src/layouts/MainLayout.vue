@@ -1,8 +1,8 @@
 <template>
   <div class="layout">
-    <Header />
+    <Header v-if="showHeaderAndSidebar" />
     <div class="main-content">
-      <Sidebar />
+      <Sidebar v-if="showHeaderAndSidebar" />
       <div class="content">
         <router-view></router-view>
       </div>
@@ -11,8 +11,16 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import Header from "../components/Header/Header.vue";
 import Sidebar from "../components/SideBar/Sidebar.vue";
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+
+const showHeaderAndSidebar = computed(() => {
+  return !["ForgotPassword", "ResetPassword"].includes(route.name);
+});
 </script>
 
 <style scoped>

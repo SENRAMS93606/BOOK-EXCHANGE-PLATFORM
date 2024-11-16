@@ -6,18 +6,19 @@
       @submit="handleFormSubmit"
     />
     <ExchangeRequestForm v-model="exchangeFormVisible" />
-    <el-row :gutter="20">
+    <h2 style="font-weight: bold">Your Books</h2>
+    <el-row :gutter="20" v-if="userBooks.length">
       <el-col
         :span="6"
-        v-for="book in filteredBooks"
-        :key="book.id"
+        v-for="book in userBooks"
+        :key="book._id"
         style="padding-bottom: 10px !important"
       >
         <el-card>
           <template #header>
             <div class="card-header">
               <img
-                :src="`https://picsum.photos/200/300?random=${book.id}`"
+                :src="`https://picsum.photos/200/300?random=${book._id}`"
                 alt="Book Image"
                 class="card-image"
               />
@@ -40,18 +41,80 @@
             <p class="book_content" v-bind:title="book.description">
               <strong>Description:</strong> {{ book.description }}
             </p>
-            <p class="book_content" v-bind:title="book.owner">
-              <strong>Owner:</strong> {{ book.owner }}
+            <!-- <p class="book_content" v-bind:title="book.owner.email">
+              <strong>Owner:</strong> {{ book.owner.email }}
+            </p> -->
+            <p class="book_content" v-bind:title="book.location">
+              <strong>Location:</strong> {{ book.location }}
+            </p>
+          </div>
+          <template #footer>
+            <el-button
+              v-if="book.owner._id === user._id"
+              @click="openEditForm(book)"
+              ><el-icon><Edit /></el-icon
+            ></el-button>
+            <el-button
+              v-if="book.owner._id === user._id"
+              @click="deleteBookById(book._id)"
+              ><el-icon><Delete /></el-icon
+            ></el-button>
+            <el-button type="warning" @click="openExchangeForm"
+              >Exchange</el-button
+            >
+          </template>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <h2 style="font-weight: bold">Other Books</h2>
+    <el-row :gutter="20" v-if="otherBooks.length">
+      <el-col
+        :span="6"
+        v-for="book in otherBooks"
+        :key="book._id"
+        style="padding-bottom: 10px !important"
+      >
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <img
+                :src="`https://picsum.photos/200/300?random=${book._id}`"
+                alt="Book Image"
+                class="card-image"
+              />
+              <span>{{ book.title }}</span>
+            </div>
+          </template>
+          <div class="card-content">
+            <p class="book_content" v-bind:title="book.author">
+              <strong>Author:</strong> {{ book.author }}
+            </p>
+            <p class="book_content" v-bind:title="book.genre">
+              <strong>Genre:</strong> {{ book.genre }}
+            </p>
+            <p class="book_content" v-bind:title="book.condition">
+              <strong>Condition:</strong> {{ book.condition }}
+            </p>
+            <p class="book_content" v-bind:title="book.status">
+              <strong>Status:</strong> {{ book.status }}
+            </p>
+            <p class="book_content" v-bind:title="book.description">
+              <strong>Description:</strong> {{ book.description }}
             </p>
             <p class="book_content" v-bind:title="book.location">
               <strong>Location:</strong> {{ book.location }}
             </p>
           </div>
           <template #footer>
-            <el-button @click="editBook(book)"
+            <el-button
+              v-if="book.owner._id === user._id"
+              @click="openEditForm(book)"
               ><el-icon><Edit /></el-icon
             ></el-button>
-            <el-button @click="deleteBook(book.id)"
+            <el-button
+              v-if="book.owner._id === user._id"
+              @click="deleteBookById(book._id)"
               ><el-icon><Delete /></el-icon
             ></el-button>
             <el-button type="warning" @click="openExchangeForm"
@@ -65,13 +128,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useBookStore } from "../../stores/bookStore";
+import { useUserStore } from "../../stores/userStore";
 import CreateNewForm from "../Form/CreateNewForm.vue";
 import ExchangeRequestForm from "../Form/ExchangeReqForm.vue";
 
 const bookStore = useBookStore();
-const { addBook, editBook, deleteBook } = bookStore;
+const userStore = useUserStore();
+
+const user = userStore.user;
+console.log("user", user);
+const { fetchBooks, addBook, editBook, deleteBook } = bookStore;
 
 const localFormVisible = ref(bookStore.formVisible);
 
@@ -99,31 +167,32 @@ const currentBook = ref({
   location: "",
 });
 
-// const openForm = () => {
-//   currentBook.value = {
-//     id: null,
-//     title: "",
-//     author: "",
-//     genre: "",
-//     condition: "",
-//     status: "",
-//     description: "",
-//     owner: "",
-//     location: "",
-//   };
-//   formVisible.value = true;
-// };
-
 const handleFormSubmit = (book) => {
-  if (book.id) {
+  if (book._id) {
+    console.log("EDIT Book.................", book);
     editBook(book);
   } else {
+    console.log("form to add=---------", book);
     addBook(book);
   }
+  localFormVisible.value = false;
+};
+
+const openEditForm = (book) => {
+  currentBook.value = { ...book };
+  localFormVisible.value = true;
 };
 
 const openExchangeForm = () => {
   exchangeFormVisible.value = true;
+};
+
+onMounted(() => {
+  fetchBooks();
+});
+
+const deleteBookById = (id) => {
+  deleteBook(id);
 };
 
 const filteredBooks = computed(() => {
@@ -139,11 +208,28 @@ const filteredBooks = computed(() => {
       book.condition.toLowerCase().includes(query) ||
       book.status.toLowerCase().includes(query) ||
       book.description.toLowerCase().includes(query) ||
-      book.owner.toLowerCase().includes(query) ||
       book.location.toLowerCase().includes(query)
     );
   });
 });
+
+const userBooks = computed(() => {
+  return filteredBooks.value.filter((book) => book.owner._id === user._id);
+});
+
+const otherBooks = computed(() => {
+  return filteredBooks.value.filter((book) => book.owner._id !== user._id);
+});
+
+watch(
+  () => bookStore.books,
+  () => {
+    console.log("Books updated:", bookStore.books);
+    console.log("userBooks", userBooks.value);
+    console.log("otherBooks", otherBooks.value);
+  },
+  { immediate: true, deep: true }
+);
 </script>
 
 <style>
@@ -173,6 +259,7 @@ const filteredBooks = computed(() => {
   height: calc(90vh - 0px);
   margin-top: 10px;
   margin-left: 40px;
+  width: 100%;
 }
 
 .card-header {
