@@ -1,107 +1,14 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useUserStore } from "./userStore";
+import axiosInstance from "../axiosInstance"; // Import the Axios instance
+import { ElMessageBox, ElMessage } from "element-plus";
 
 export const useBookStore = defineStore("bookStore", () => {
-  const books = ref([
-    {
-      id: 1,
-      title: "The Great Gatsby",
-      author: "F. Scott Fitzgerald",
-      genre: "Classic Fiction",
-      condition: "Good",
-      status: "Available",
-      description:
-        "A tragic story of Jay Gatsby's pursuit of love and the American Dream.",
-      owner: "Alice",
-      location: "New York",
-    },
-    {
-      id: 2,
-      title: "To Kill a Mockingbird",
-      author: "Harper Lee",
-      genre: "Historical Fiction",
-      condition: "Excellent",
-      status: "Available",
-      description:
-        "A powerful story about race and justice in the American South.",
-      owner: "Bob",
-      location: "Chicago",
-    },
-    {
-      id: 3,
-      title: "1984",
-      author: "George Orwell",
-      genre: "Dystopian",
-      condition: "Fair",
-      status: "Lent Out",
-      description:
-        "A grim portrayal of a totalitarian society under constant surveillance.",
-      owner: "Charlie",
-      location: "San Francisco",
-    },
-    {
-      id: 4,
-      title: "Pride and Prejudice",
-      author: "Jane Austen",
-      genre: "Romantic Fiction",
-      condition: "Good",
-      status: "Available",
-      description: "A timeless romance between Elizabeth Bennet and Mr. Darcy.",
-      owner: "Diana",
-      location: "Los Angeles",
-    },
-    {
-      id: 5,
-      title: "The Catcher in the Rye",
-      author: "J.D. Salinger",
-      genre: "Literary Fiction",
-      condition: "Good",
-      status: "Available",
-      description: "A young boy’s struggles with identity and alienation.",
-      owner: "Ethan",
-      location: "Boston",
-    },
-    {
-      id: 6,
-      title: "The Alchemist",
-      author: "Paulo Coelho",
-      genre: "Philosophical Fiction",
-      condition: "Excellent",
-      status: "Lent Out",
-      description:
-        "A young shepherd’s quest for treasure becomes a journey of self-discovery.",
-      owner: "Fiona",
-      location: "Miami",
-    },
-    {
-      id: 7,
-      title: "Sapiens: A Brief History of Humankind",
-      author: "Yuval Noah Harari",
-      genre: "Non-Fiction",
-      condition: "Good",
-      status: "Available",
-      description:
-        "A fascinating exploration of humanity's history and impact on the world.",
-      owner: "George",
-      location: "Austin",
-    },
-    {
-      id: 8,
-      title: "The Hobbit",
-      author: "J.R.R. Tolkien",
-      genre: "Fantasy",
-      condition: "Excellent",
-      status: "Available",
-      description:
-        "Bilbo Baggins embarks on an adventurous journey to recover a lost treasure.",
-      owner: "Hannah",
-      location: "Seattle",
-    },
-  ]);
-
+  const books = ref([]);
   const searchQuery = ref("");
   const formVisible = ref(false);
-
+  const userStore = useUserStore();
   const getSearchQuery = computed(() => searchQuery.value);
   const getFormVisible = computed(() => formVisible.value);
 
@@ -114,21 +21,78 @@ export const useBookStore = defineStore("bookStore", () => {
     formVisible.value = visible;
   };
 
-  const addBook = (book) => {
-    book.id = books.value.length + 1;
-    books.value.push(book);
-  };
-
-  const editBook = (book) => {
-    const index = books.value.findIndex((b) => b.id === book.id);
-    if (index !== -1) {
-      books.value[index] = { ...book };
+  const fetchBooks = async () => {
+    try {
+      const response = await axiosInstance.get("/books");
+      books.value = response.data;
+      console.log("response.data", response.data);
+    } catch (error) {
+      console.error("Error fetching books:", error);
     }
   };
 
-  const deleteBook = (id) => {
-    books.value = books.value.filter((book) => book.id !== id);
+  const addBook = async (book) => {
+    try {
+      const userId = userStore.user._id; // Get the user ID from the store
+
+      const bookPayload = {
+        ...book,
+        owner: userId, // Include the user ID in the request payload
+      };
+      console.log("Adding book:", book); // Log the book payload
+      const response = await axiosInstance.post("/books", bookPayload);
+      books.value.push(response.data);
+      ElMessage.success("Book added successfully");
+      fetchBooks();
+    } catch (error) {
+      console.error("Error adding book:", error);
+    }
   };
+
+  const editBook = async (book) => {
+    try {
+      console.log("Editing book", book);
+      const response = await axiosInstance.put(`/books/${book._id}`, book);
+      const index = books.value.findIndex((b) => b._id === book._id);
+      if (index !== -1) {
+        books.value[index] = response.data;
+      }
+      ElMessage.success("Book updated successfully");
+      fetchBooks();
+    } catch (error) {
+      console.error("Error editing book:", error);
+    }
+  };
+
+  const deleteBook = async (id) => {
+    try {
+      await axiosInstance.delete(`/books/${id}`);
+      books.value = books.value.filter((book) => book.id !== id);
+      ElMessage.success("Book deleted successfully");
+      fetchBooks();
+    } catch (error) {
+      console.error("Error deleting book:", error);
+    }
+  };
+
+  const filteredBooks = computed(() => {
+    const query = searchQuery.value.toLowerCase();
+    if (!query) {
+      return books.value;
+    }
+    return books.value.filter((book) => {
+      return (
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query) ||
+        book.genre.toLowerCase().includes(query) ||
+        book.condition.toLowerCase().includes(query) ||
+        book.status.toLowerCase().includes(query) ||
+        book.description.toLowerCase().includes(query) ||
+        book.owner.toLowerCase().includes(query) ||
+        book.location.toLowerCase().includes(query)
+      );
+    });
+  });
 
   return {
     books,
@@ -136,8 +100,10 @@ export const useBookStore = defineStore("bookStore", () => {
     formVisible: getFormVisible,
     setSearchQuery,
     setFormVisible,
+    fetchBooks,
     addBook,
     editBook,
     deleteBook,
+    filteredBooks,
   };
 });
