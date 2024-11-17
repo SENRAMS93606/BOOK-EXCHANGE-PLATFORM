@@ -82,25 +82,24 @@ The Book Exchange Platform is a web application that allows users to exchange bo
 
 # Install backend dependencies
 
-cd backend
-npm install
+    cd backend
+    npm install
 
 # Install frontend dependencies
 
-cd ../frontend
-npm install
+    cd ../frontend
+    npm install
 
 # Set up environment variables:
 
-MONGODB_URI=your_mongodb_uri
-SESSION_SECRET=your_session_secret
+    MONGODB_URI=your_mongodb_uri
 
 # Run the backend server
 
-cd backend
-node src/index.js
+    cd backend
+    node src/index.js
 
 # Run the frontend development server
 
-cd frontend
-npm run dev
+    cd frontend
+    npm run dev
