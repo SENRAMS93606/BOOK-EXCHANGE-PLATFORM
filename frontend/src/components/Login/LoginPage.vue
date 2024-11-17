@@ -70,8 +70,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:formType"]);
-const email = ref("senramsenraj@gmail.com");
-const password = ref("12345");
+const email = ref("");
+const password = ref("");
 const formType = ref(props.formType);
 const router = useRouter();
 const userStore = useUserStore(); // Initialize the user store
